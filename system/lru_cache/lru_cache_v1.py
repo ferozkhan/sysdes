@@ -18,3 +18,11 @@ class LRUCache(OrderedDict):
         self.move_to_end(key)
         if self.capacity < len(self):
             self.popitem(last=False)
+
+
+cache = LRUCache(2)
+cache.put(1, 1)
+cache.put(2, 2)
+assert cache.get(1) == 1
+cache.put(3, 3)
+assert cache.get(2) == -1
