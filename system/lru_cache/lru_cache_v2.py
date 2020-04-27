@@ -1,133 +1,81 @@
-from collections import OrderedDict
 
-
-class Slot:
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
+class DLinkedList:
+    def __init__(self) -> None:
+        self.key = 0
+        self.value = 0
         self.next = None
         self.prev = None
 
-    def delete(self):
-        if self.prev or self.next:
-            key = self.key
-            prev_node = self.prev
-            next_node = self.next
-            if next_node is not None and prev_node is not None:
-                prev_node.next = next_node
-                next_node.prev = prev_node
-            elif prev_node is None:
-                pass # ignore, head node
-            elif next_node is None:
-                prev_node.next = None
-                self.prev = None
-            return key
 
-
-class Container:
-
-    def __init__(self, capacity):
+class LRUCache:
+    def __init__(self, capacity: int) -> None:
         self.capacity = capacity
-        self.occupied = 0
-        self.head = None
-        self.tail = None
+        self.size = 0
+        self.cache = {}
+        self.head = DLinkedList()
+        self.tail = DLinkedList()
+        self.head.next = self.tail
+        self.tail.prev = self.head
 
-    def delete_least_recent(self):
-        new_tail = self.tail.prev
-        deleted_key = self.tail.delete()
-        self.tail = new_tail
-        return deleted_key
+    def _add_node(self, node) -> None:
+        """ Always add node after head node"""
+        node.prev = self.head
+        node.next = self.head.next
 
-    def make_recent(self, slot):
-        if slot == self.head or self.head == self.tail:
-            return
-        elif slot == self.tail:
-            self.tail = slot.prev
-            self.tail.next = None
-            slot.next = self.head
-            self.head.prev = slot
-            self.head = slot
+        self.head.next.prev = node
+        self.head.next = node
+
+    @staticmethod
+    def _remove_node(node) -> None:
+        """ Always remove node before tail node"""
+        _next = node.next
+        _prev = node.prev
+
+        _prev.next = _next
+        _next.prev = _prev
+
+    def _mode_to_head(self, node) -> None:
+        """remove the node and add it to head"""
+        self._remove_node(node)
+        self._add_node(node)
+
+    def _pop_tail(self) -> int:
+        _node = self.tail.prev
+        self._remove_node(_node)
+        return _node.key
+
+    def get(self, key: int) -> int:
+        node = self.cache.get(key, None)
+        if node is None:
+            return -1
+
+        self._mode_to_head(node)
+        return node.value
+
+    def put(self, key: int, value: int) -> None:
+        node = self.cache.get(key)
+        if node is None:
+            new_node = DLinkedList()
+            new_node.key = key
+            new_node.value = value
+
+            self.cache[key] = new_node
+            self._add_node(new_node)
+
+            self.size += 1
+
+            if self.size > self.capacity:
+                tail = self._pop_tail()
+                del self.cache[tail]
+                self.size -= 1
         else:
-            pass
-
-    def _insert(self, slot):
-        if self.head is None:
-            self.head = slot
-            self.tail = slot
-        else:
-            slot.next = self.head
-            self.head.prev = slot
-            self.head = slot
-        self.occupied += 1
-
-    def add_slot(self, slot):
-        self._insert(slot)
-        return slot
-
-    def __repr__(self):
-        return f'Container<capacity:{self.capacity}, occupied:{self.occupied}>'
+            node.value = value
+            self._mode_to_head(node)
 
 
-class LRUCache(OrderedDict):
-
-    def __init__(self, capacity):
-        self.capacity = capacity
-        super().__init__()
-
-    def __getitem__(self, key):
-        value = super().__getitem__(key)
-        print(self)
-        self.move_to_end(key)
-        return value
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
-        if len(self) > self.capacity:
-            oldest = next(iter(self))
-            del self[oldest]
-
-
-lru = LRUCache(2)
-lru[1] = 1
-lru[2] = 2
-# print(lru)
-lru[1]
-# print(lru)
-lru[3] = 3
-# print(lru)
-    #
-    # @property
-    # def stats(self):
-    #     return f"Capacity:\t{self.container.capacity}" \
-    #            f"\nUsed:\t{self.container.occupied}"
-    #
-    # def _get(self, key):
-    #     if key not in self.__cache:
-    #         return -1
-    #     slot = self.__cache[key]
-    #     self.container.make_recent(slot)
-    #     return slot.value
-    #
-    # def _put(self, key, value):
-    #     self.__cache[key] = self.container.add_slot(Slot(key, value))
-    #
-    # def put(self, key, value):
-    #     return self._put(key, value)
-    #
-    # def get(self, key):
-    #     return self._get(key)
-
-
-# cache = LRUCache(2)
-#
-# cache.put(1, 1)
-# cache.put(2, 2)
-# # assert 1 == cache.get(1)                # returns 1
-# # cache.put(3, 3)                         # evicts key 2
-# # assert -1 == cache.get(2)               # returns -1 (not found)
-# print(cache.container.head.value, cache.container.tail.value)
-# cache.put(4, 4)                         # evicts key 1
-# print(cache.container.head.value, cache.container.tail.value)
-# # assert -1 == cache.get(1)               # returns -1 (not found)
-# # assert 3 == cache.get(3)                # returns 3
-# # assert 4 == cache.get(4)                # returns 4
+cache = LRUCache(2)
+cache.put(1, 1)
+cache.put(2, 2)
+assert cache.get(1) == 1
+cache.put(3, 3)
+assert cache.get(2) == -1
