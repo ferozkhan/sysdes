@@ -1,5 +1,6 @@
 
 
+""" complexity: run time => O(nlogn) | space => O(n) """
 def get_all_availability_slots(booked_time_slots):
     # sort by start time
     booked_time_slots = sorted(booked_time_slots, key=lambda slot: slot[0])
